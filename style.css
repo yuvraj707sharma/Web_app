@@ -1,0 +1,46 @@
+<!-- File: style.css -->
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background: #f0f2f5;
+  color: #333;
+}
+header {
+  background: #4caf50;
+  color: white;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+header h1 { margin: 0; font-size: 1.5rem; }
+#connect-btn {
+  background: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: bold;
+}
+main {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  padding: 2rem;
+}
+.feature {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  padding: 1rem;
+  text-align: center;
+  width: 220px;
+}
+.feature img {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 0.5rem;
+}
+.feature h2 { margin: 0.5rem 0; font-size: 1.1rem; }
+.feature p { margin: 0; font-size: 0.9rem; }
