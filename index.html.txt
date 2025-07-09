@@ -1,0 +1,40 @@
+<!-- File: index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GetFit Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <header>
+    <h1>GetFit Dashboard</h1>
+    <button id="connect-btn">Connect Device</button>
+  </header>
+  <main>
+    <section class="feature">
+      <img src="https://cdn.jsdelivr.net/gh/undraw/illustrations/step_counting.svg" alt="Step Count">
+      <h2>Step Counting</h2>
+      <p id="steps">Steps: --</p>
+    </section>
+    <section class="feature">
+      <img src="https://cdn.jsdelivr.net/gh/undraw/illustrations/heart_rate_monitor.svg" alt="Heart Rate">
+      <h2>Heart Rate Monitoring</h2>
+      <p id="heart-rate">BPM: --</p>
+    </section>
+    <section class="feature">
+      <img src="https://cdn.jsdelivr.net/gh/undraw/illustrations/fall_detected.svg" alt="Fall Detection">
+      <h2>Fall Detection</h2>
+      <p id="fall-alert">Status: --</p>
+    </section>
+  </main>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('Service Worker registered', reg));
+    }
+  </script>
+</body>
+</html>
