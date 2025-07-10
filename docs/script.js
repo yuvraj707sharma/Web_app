@@ -27,9 +27,10 @@ connectBtn.addEventListener('click', async () => {
 
     connectBtn.textContent = 'Connected';
     
-    // Request notification permission
-    if (Notification.permission === 'default') {
-      await Notification.requestPermission();
+    // Request notification permission up front after BLE connection
+    if (Notification.permission !== 'granted') {
+      const permission = await Notification.requestPermission();
+      console.log('Notification permission after BLE connect:', permission);
     }
   } catch (e) {
     console.error('BLE connection failed:', e);
@@ -63,9 +64,21 @@ function updateDashboard({ steps, heartRate, fall }) {
   document.getElementById('fall-alert').textContent = fall ? 'Fall detected!' : 'All good';
 }
 
-function notifyUser(message) {
+// Enhanced notification function with permission handling and debugging
+async function notifyUser(message) {
+  console.log("🔔 notifyUser:", message);
+  
+  // Request permission if not already granted
+  if (Notification.permission === 'default') {
+    const permission = await Notification.requestPermission();
+    console.log('Notification permission:', permission);
+  }
+  
+  // Show notification immediately if permission granted
   if (Notification.permission === 'granted') {
     new Notification('GetFit Alert', { body: message });
+  } else {
+    console.warn('Notification permission denied');
   }
 }
 

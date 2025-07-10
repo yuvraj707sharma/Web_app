@@ -35,9 +35,18 @@
     </section>
   </main>
   <script>
+    // Register service worker and request notification permission on page load
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('Service Worker registered', reg));
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker registered', reg))
+        .catch(err => console.error('Service Worker registration failed', err));
+    }
+    
+    // Request notification permission early on page load
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('Initial notification permission:', permission);
+      });
     }
   </script>
 </body>
