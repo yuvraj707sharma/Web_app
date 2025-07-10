@@ -9,7 +9,7 @@ connectBtn.addEventListener('click', async () => {
   try {
     // Request BLE device
     bleDevice = await navigator.bluetooth.requestDevice({
-      filters: [{ name: 'GetFit BLE' }],
+      acceptAllDevices: true,
       optionalServices: ['e267751a-ae76-11eb-8529-0242ac130003']
     });
 
