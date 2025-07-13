@@ -34,6 +34,25 @@
       <p id="fall-alert" class="metric">Status: --</p>
     </section>
   </main>
+  
+  <!-- CHATBOT UI: Non-intrusive overlay widget -->
+  <div id="chatbot-widget">
+    <div id="chat-toggle" title="Health Assistant">
+      🤖
+    </div>
+    <div id="chat-window" class="hidden">
+      <div id="chat-header">
+        <span>Health Assistant</span>
+        <button id="chat-close">×</button>
+      </div>
+      <div id="chat-messages"></div>
+      <div id="chat-input-area">
+        <input type="text" id="chat-input" placeholder="Ask about your health data...">
+        <button id="chat-send">Send</button>
+      </div>
+    </div>
+  </div>
+  
   <script>
     // Register service worker and request notification permission on page load
     if ('serviceWorker' in navigator) {
