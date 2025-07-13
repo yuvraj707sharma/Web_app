@@ -1,9 +1,15 @@
 /* File: script.js */
-// CONFIG: Add your free AI API key here (e.g., Hugging Face)
+// CONFIG: Secure API key handling for production
 const AI_CONFIG = {
-  apiKey: prompt('Enter your Hugging Face API key (or press Cancel to use demo mode):') || 'demo',
-  endpoint: 'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium'
+  apiKey: localStorage.getItem('hf_api_key') || 
+           prompt('Enter your Hugging Face API key (or press Cancel for demo mode):') || 'demo',
+  endpoint: 'https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1'
 };
+
+// Store API key securely in localStorage if provided
+if (AI_CONFIG.apiKey !== 'demo' && AI_CONFIG.apiKey !== localStorage.getItem('hf_api_key')) {
+  localStorage.setItem('hf_api_key', AI_CONFIG.apiKey);
+}
 
 // EXISTING BLE VARIABLES
 const connectBtn = document.getElementById('connect-btn');
@@ -171,8 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return getDemoResponse(context);
     }
     
-    // Call Hugging Face API
-    const prompt = `Health data: Heart rate ${context.heartRate} BPM, Steps: ${context.steps}. Question: ${context.question}. Provide a helpful health response.`;
+    // Call Hugging Face Mixtral API with optimized prompt
+    const prompt = `<s>[INST] You are a health assistant. Current data: Heart rate ${context.heartRate} BPM, Steps taken: ${context.steps}. User question: "${context.question}". Provide a brief, helpful response about their health metrics. [/INST]`;
     
     const response = await fetch(AI_CONFIG.endpoint, {
       method: 'POST',
@@ -182,14 +188,21 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       body: JSON.stringify({
         inputs: prompt,
-        parameters: { max_length: 100, temperature: 0.7 }
+        parameters: { 
+          max_new_tokens: 150, 
+          temperature: 0.3,
+          return_full_text: false
+        }
       })
     });
     
-    if (!response.ok) throw new Error('API request failed');
+    if (!response.ok) {
+      console.error('API Error:', response.status, response.statusText);
+      throw new Error('API request failed');
+    }
     
     const data = await response.json();
-    return data[0]?.generated_text?.replace(prompt, '').trim() || 'I need more information to help you.';
+    return data[0]?.generated_text?.trim() || 'I need more information to help you.';
   }
   
   function getDemoResponse({ heartRate, steps, question }) {
@@ -197,16 +210,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (q.includes('heart') || q.includes('bpm')) {
       if (heartRate === 'unknown') return 'Connect your device to see heart rate data!';
-      if (heartRate < 60) return `Your heart rate of ${heartRate} BPM is quite low. Consider consulting a doctor if you feel unwell.`;
-      if (heartRate > 100) return `Your heart rate of ${heartRate} BPM is elevated. Take a moment to rest and breathe deeply.`;
-      return `Your heart rate of ${heartRate} BPM looks normal for your current activity level.`;
+      if (heartRate < 60) return `Your heart rate of ${heartRate} BPM is quite low. This could be normal if you're very fit, but consider consulting a doctor if you feel unwell.`;
+      if (heartRate > 100) return `Your heart rate of ${heartRate} BPM is elevated. After ${steps} steps, this might be normal during activity. Take a moment to rest if needed.`;
+      return `Your heart rate of ${heartRate} BPM looks normal for someone who has walked ${steps} steps today.`;
     }
     
     if (q.includes('step') || q.includes('walk')) {
       if (steps === 'unknown') return 'Connect your device to track your steps!';
-      if (steps < 2000) return `You have ${steps} steps today. Try to reach 10,000 steps for optimal health!`;
-      if (steps > 10000) return `Great job! ${steps} steps is excellent for your daily activity.`;
-      return `You have ${steps} steps today. You're making good progress!`;
+      if (steps < 2000) return `You have ${steps} steps today with a heart rate of ${heartRate} BPM. Try to reach 10,000 steps for optimal health!`;
+      if (steps > 10000) return `Excellent! ${steps} steps with a heart rate of ${heartRate} BPM shows great activity levels.`;
+      return `You have ${steps} steps today and your heart rate is ${heartRate} BPM. You're making good progress!`;
+    }
+    
+    if (q.includes('health') || q.includes('how am i')) {
+      return `Based on your current data: ${heartRate} BPM heart rate and ${steps} steps, you're doing well! Keep up the good work.`;
     }
     
     return 'I can help you understand your heart rate and step count data. What would you like to know?';
