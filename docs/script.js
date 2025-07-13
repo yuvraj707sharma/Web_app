@@ -76,7 +76,7 @@ async function notifyUser(message) {
   
   // Show notification immediately if permission granted
   if (Notification.permission === 'granted') {
-    new Notification('GetFit Alert', { body: message });
+    new Notification('Fitband Alert', { body: message });
   } else {
     console.warn('Notification permission denied');
   }

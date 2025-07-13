@@ -2,7 +2,7 @@
 // Enhanced service worker with proper error handling and fallback data
 self.addEventListener('push', event => {
   // Handle push events with fallback data if no payload
-  const data = event.data ? event.data.json() : { title: 'GetFit', body: 'Fall detected!' };
+  const data = event.data ? event.data.json() : { title: 'Fitband', body: 'Fall detected!' };
   const options = { 
     body: data.body || 'Fall detected!',
     icon: '/icons/alert-icon.png',
@@ -10,7 +10,7 @@ self.addEventListener('push', event => {
     vibrate: [200, 100, 200]
   };
   event.waitUntil(
-    self.registration.showNotification(data.title || 'GetFit Alert', options)
+    self.registration.showNotification(data.title || 'Fitband Alert', options)
   );
 });
 
