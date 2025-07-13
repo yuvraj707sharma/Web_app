@@ -1,15 +1,9 @@
 /* File: script.js */
-// CONFIG: Secure API key handling for production
+// CONFIG: Hugging Face API configuration
 const AI_CONFIG = {
-  apiKey: localStorage.getItem('hf_api_key') || 
-           prompt('Enter your Hugging Face API key (or press Cancel for demo mode):') || 'demo',
+  apiKey: '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',
   endpoint: 'https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1'
 };
-
-// Store API key securely in localStorage if provided
-if (AI_CONFIG.apiKey !== 'demo' && AI_CONFIG.apiKey !== localStorage.getItem('hf_api_key')) {
-  localStorage.setItem('hf_api_key', AI_CONFIG.apiKey);
-}
 
 // EXISTING BLE VARIABLES
 const connectBtn = document.getElementById('connect-btn');
@@ -172,10 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
       question: question
     };
     
-    // Demo mode fallback responses
-    if (AI_CONFIG.apiKey === 'demo') {
-      return getDemoResponse(context);
-    }
+    // Use demo responses as fallback if API fails
+    // Primary mode is now always API-first
     
     // Call Hugging Face Mixtral API with optimized prompt
     const prompt = `<s>[INST] You are a health assistant. Current data: Heart rate ${context.heartRate} BPM, Steps taken: ${context.steps}. User question: "${context.question}". Provide a brief, helpful response about their health metrics. [/INST]`;
