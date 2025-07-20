@@ -54,7 +54,12 @@ function handleBLEData(event) {
   try {
     const data = JSON.parse(value);
     updateDashboard(data);
-    if (data.fall) notifyUser('Fall detected!');
+    if (data.fall) {
+      // Trigger prominent notification for fall detection
+      notifyUser('EMERGENCY: Fall detected!');
+      // Also show an alert for immediate attention
+      alert('⚠️ FALL DETECTED! ⚠️\n\nEmergency assistance may be needed.');
+    }
   } catch (e) {
     console.error('Failed to parse BLE data:', e);
   }
@@ -166,8 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
       question: question
     };
     
-    // Use demo responses as fallback if API fails
-    // Primary mode is now always API-first
+    try {
     
     // Call Hugging Face Mixtral API with optimized prompt
     const prompt = `<s>[INST] You are a health assistant. Current data: Heart rate ${context.heartRate} BPM, Steps taken: ${context.steps}. User question: "${context.question}". Provide a brief, helpful response about their health metrics. [/INST]`;
@@ -195,6 +199,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const data = await response.json();
     return data[0]?.generated_text?.trim() || 'I need more information to help you.';
+    } catch (error) {
+      console.warn('Using demo mode due to API error:', error);
+      return getDemoResponse(context);
+    }
   }
   
   function getDemoResponse({ heartRate, steps, question }) {
