@@ -4,9 +4,10 @@ const AI_CONFIG = {
   demoMode: true
 };
 
-// WEBSOCKET VARIABLES
+// BLE VARIABLES
 const connectBtn = document.getElementById('connect-btn');
-let socket;
+let bleDevice = null;
+let bleCharacteristic = null;
 
 // CHATBOT: Global health data for AI context
 let currentData = { heartRate: 0, steps: 0, fall: false };
@@ -14,45 +15,81 @@ let currentData = { heartRate: 0, steps: 0, fall: false };
 // CAREGIVER: Emergency contact data
 let caregiverData = JSON.parse(localStorage.getItem('caregiverData')) || null;
 
-// Initialize Socket.IO connection
-function initializeConnection() {
-  socket = io();
-  
-  socket.on('connect', () => {
-    console.log('Connected to server');
-    connectBtn.textContent = 'Connected (Live)';
+// BLE Configuration
+const BLE_SERVICE_UUID = 'e267751a-ae76-11eb-8529-0242ac130003';
+const BLE_CHARACTERISTIC_UUID = 'e267751b-ae76-11eb-8529-0242ac130003';
+
+// Connect to BLE device
+async function connectToBLE() {
+  try {
+    console.log('Requesting Bluetooth Device...');
+    bleDevice = await navigator.bluetooth.requestDevice({
+      filters: [{ name: 'GetFit BLE' }],
+      optionalServices: [BLE_SERVICE_UUID]
+    });
+    
+    console.log('Connecting to GATT Server...');
+    const server = await bleDevice.gatt.connect();
+    
+    console.log('Getting Service...');
+    const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+    
+    console.log('Getting Characteristic...');
+    bleCharacteristic = await service.getCharacteristic(BLE_CHARACTERISTIC_UUID);
+    
+    // Start notifications
+    await bleCharacteristic.startNotifications();
+    bleCharacteristic.addEventListener('characteristicvaluechanged', handleBLEData);
+    
+    // Update UI
+    connectBtn.innerHTML = '<span class="btn-icon">✓</span> Connected';
     connectBtn.disabled = true;
-  });
-  
-  socket.on('disconnect', () => {
-    console.log('Disconnected from server');
-    connectBtn.textContent = 'Disconnected';
-    connectBtn.disabled = false;
-  });
-  
-  socket.on('sensor-update', (data) => {
-    console.log('Received sensor data:', data);
+    
+    // Handle disconnection
+    bleDevice.addEventListener('gattserverdisconnected', () => {
+      console.log('Device disconnected');
+      connectBtn.innerHTML = '<span class="btn-icon">🔗</span> Connect Device';
+      connectBtn.disabled = false;
+      bleDevice = null;
+      bleCharacteristic = null;
+    });
+    
+  } catch (error) {
+    console.error('BLE connection failed:', error);
+    alert('Failed to connect to device. Make sure Bluetooth is enabled and the device is nearby.');
+  }
+}
+
+// Handle incoming BLE data
+function handleBLEData(event) {
+  const value = new TextDecoder().decode(event.target.value);
+  try {
+    const data = JSON.parse(value);
+    console.log('Received BLE data:', data);
     updateDashboard(data);
+    
     if (data.fall) {
-      // Trigger prominent notification for fall detection
       notifyUser('EMERGENCY: Fall detected!');
-      // Handle emergency with location sharing
       handleEmergency();
     }
-  });
+  } catch (error) {
+    console.error('Failed to parse BLE data:', error);
+  }
 }
 
 // Connect button handler
-connectBtn.addEventListener('click', () => {
-  if (!socket || !socket.connected) {
-    initializeConnection();
-  }
-});
+connectBtn.addEventListener('click', connectToBLE);
 
-// Auto-connect on page load
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
-  initializeConnection();
   initializeCaregiverSettings();
+  
+  // Check if Web Bluetooth is supported
+  if (!navigator.bluetooth) {
+    connectBtn.textContent = 'Bluetooth not supported';
+    connectBtn.disabled = true;
+    alert('Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Safari.');
+  }
 });
 
 // CAREGIVER SETTINGS FUNCTIONALITY
@@ -62,38 +99,56 @@ function initializeCaregiverSettings() {
   const settingsClose = document.getElementById('settings-close');
   const caregiverForm = document.getElementById('caregiver-form');
   
+  if (!settingsBtn) {
+    console.error('Settings button not found');
+    return;
+  }
+  
   // Load existing caregiver data
   if (caregiverData) {
-    document.getElementById('caregiver-name').value = caregiverData.name || '';
-    document.getElementById('caregiver-phone').value = caregiverData.phone || '';
-    document.getElementById('caregiver-email').value = caregiverData.email || '';
+    const nameInput = document.getElementById('caregiver-name');
+    const phoneInput = document.getElementById('caregiver-phone');
+    const emailInput = document.getElementById('caregiver-email');
+    
+    if (nameInput) nameInput.value = caregiverData.name || '';
+    if (phoneInput) phoneInput.value = caregiverData.phone || '';
+    if (emailInput) emailInput.value = caregiverData.email || '';
   }
   
   settingsBtn.addEventListener('click', () => {
-    settingsModal.classList.remove('hidden');
-  });
-  
-  settingsClose.addEventListener('click', () => {
-    settingsModal.classList.add('hidden');
-  });
-  
-  settingsModal.addEventListener('click', (e) => {
-    if (e.target === settingsModal) {
-      settingsModal.classList.add('hidden');
+    console.log('Settings button clicked');
+    if (settingsModal) {
+      settingsModal.classList.remove('hidden');
     }
   });
   
-  caregiverForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    caregiverData = {
-      name: document.getElementById('caregiver-name').value,
-      phone: document.getElementById('caregiver-phone').value,
-      email: document.getElementById('caregiver-email').value
-    };
-    localStorage.setItem('caregiverData', JSON.stringify(caregiverData));
-    settingsModal.classList.add('hidden');
-    alert('Caregiver information saved!');
-  });
+  if (settingsClose) {
+    settingsClose.addEventListener('click', () => {
+      settingsModal.classList.add('hidden');
+    });
+  }
+  
+  if (settingsModal) {
+    settingsModal.addEventListener('click', (e) => {
+      if (e.target === settingsModal) {
+        settingsModal.classList.add('hidden');
+      }
+    });
+  }
+  
+  if (caregiverForm) {
+    caregiverForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      caregiverData = {
+        name: document.getElementById('caregiver-name').value,
+        phone: document.getElementById('caregiver-phone').value,
+        email: document.getElementById('caregiver-email').value
+      };
+      localStorage.setItem('caregiverData', JSON.stringify(caregiverData));
+      settingsModal.classList.add('hidden');
+      alert('Caregiver information saved!');
+    });
+  }
 }
 
 // EMERGENCY HANDLING WITH LOCATION
@@ -184,12 +239,16 @@ function copyLocation(location, mapsUrl) {
 }
 
 function updateDashboard({ steps, heartRate, fall }) {
-  document.getElementById('steps').textContent = `Steps: ${steps}`;
-  document.getElementById('heart-rate').textContent = `BPM: ${heartRate}`;
-  document.getElementById('fall-alert').textContent = fall ? 'Fall detected!' : 'All good';
+  const stepsEl = document.getElementById('steps');
+  const heartRateEl = document.getElementById('heart-rate');
+  const fallAlertEl = document.getElementById('fall-alert');
+  
+  if (stepsEl) stepsEl.textContent = `Steps: ${steps || 0}`;
+  if (heartRateEl) heartRateEl.textContent = `BPM: ${heartRate || 0}`;
+  if (fallAlertEl) fallAlertEl.textContent = fall ? 'Fall detected!' : 'All good';
   
   // CHATBOT: Update global data for AI context
-  currentData = { heartRate, steps, fall };
+  currentData = { heartRate: heartRate || 0, steps: steps || 0, fall: fall || false };
 }
 
 // Enhanced notification function with permission handling and debugging
