@@ -22,13 +22,19 @@ header {
   box-shadow: 0 4px 20px rgba(31, 111, 235, 0.2);
 }
 
+.header-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
 header h1 {
   font-size: 1.8rem;
   font-weight: 600;
   letter-spacing: -0.5px;
 }
 
-#connect-btn {
+#connect-btn, #settings-btn {
   background: linear-gradient(135deg, #238636, #2ea043);
   color: white;
   border: none;
@@ -44,9 +50,19 @@ header h1 {
   box-shadow: 0 2px 8px rgba(46, 160, 67, 0.3);
 }
 
-#connect-btn:hover {
+#settings-btn {
+  background: linear-gradient(135deg, #6f42c1, #8b5cf6);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+  padding: 0.75rem;
+}
+
+#connect-btn:hover, #settings-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(46, 160, 67, 0.4);
+}
+
+#settings-btn:hover {
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
 }
 
 #connect-btn:disabled {
@@ -114,6 +130,10 @@ main {
     padding: 1rem;
     flex-direction: column;
     gap: 1rem;
+  }
+  
+  .header-controls {
+    order: -1;
   }
   
   header h1 {
@@ -264,6 +284,135 @@ main {
   box-shadow: 0 2px 8px rgba(46, 160, 67, 0.3);
 }
 
+/* MODAL STYLES */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.modal-content.emergency {
+  border-color: #da3633;
+  box-shadow: 0 8px 32px rgba(218, 54, 51, 0.3);
+}
+
+.modal-header, .emergency-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.emergency-header h3 {
+  color: #ff6b6b;
+  font-size: 1.5rem;
+}
+
+.modal-header h3 {
+  color: #e6edf3;
+  font-size: 1.3rem;
+}
+
+#settings-close {
+  background: none;
+  border: none;
+  color: #c9d1d9;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+#caregiver-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+#caregiver-form label {
+  color: #e6edf3;
+  font-weight: 500;
+}
+
+#caregiver-form input {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: #c9d1d9;
+  font-family: inherit;
+}
+
+#caregiver-form input:focus {
+  outline: none;
+  border-color: #1f6feb;
+}
+
+#caregiver-form button {
+  background: linear-gradient(135deg, #238636, #2ea043);
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.emergency-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.emergency-btn {
+  background: linear-gradient(135deg, #da3633, #f85149);
+  color: white;
+  border: none;
+  padding: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.emergency-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(218, 54, 51, 0.4);
+}
+
+.location-info {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #7d8590;
+}
+
 @media (max-width: 768px) {
   #chat-window {
     width: 280px;
@@ -273,5 +422,13 @@ main {
   #chatbot-widget {
     bottom: 15px;
     right: 15px;
+  }
+  
+  .header-controls {
+    gap: 0.5rem;
+  }
+  
+  #settings-btn {
+    padding: 0.5rem;
   }
 }

@@ -13,10 +13,15 @@
 <body>
   <header>
     <h1>🏃‍♂️ Fitband Dashboard</h1>
-    <button id="connect-btn">
-      <span class="btn-icon">🔗</span>
-      Connect Device
-    </button>
+    <div class="header-controls">
+      <button id="settings-btn" title="Caregiver Settings">
+        <span class="btn-icon">⚙️</span>
+      </button>
+      <button id="connect-btn">
+        <span class="btn-icon">🔗</span>
+        Connect Device
+      </button>
+    </div>
   </header>
   <main>
     <section class="feature">
@@ -36,6 +41,40 @@
     </section>
   </main>
   
+  <!-- CAREGIVER SETTINGS MODAL -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Emergency Caregiver Settings</h3>
+        <button id="settings-close">×</button>
+      </div>
+      <form id="caregiver-form">
+        <label>Caregiver Name:</label>
+        <input type="text" id="caregiver-name" placeholder="Enter caregiver name" required>
+        
+        <label>Phone Number:</label>
+        <input type="tel" id="caregiver-phone" placeholder="+1234567890" required>
+        
+        <label>Email (optional):</label>
+        <input type="email" id="caregiver-email" placeholder="caregiver@example.com">
+        
+        <button type="submit">Save Caregiver</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- EMERGENCY MODAL -->
+  <div id="emergency-modal" class="modal hidden">
+    <div class="modal-content emergency">
+      <div class="emergency-header">
+        <h3>🚨 FALL DETECTED!</h3>
+      </div>
+      <div id="emergency-content">
+        <p>Getting your location...</p>
+      </div>
+    </div>
+  </div>
+
   <!-- CHATBOT UI: Non-intrusive overlay widget -->
   <div id="chatbot-widget">
     <div id="chat-toggle" title="Health Assistant">
@@ -67,6 +106,15 @@
       Notification.requestPermission().then(permission => {
         console.log('Initial notification permission:', permission);
       });
+    }
+    
+    // Request location permission early
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        () => console.log('Location permission granted'),
+        () => console.log('Location permission denied'),
+        { timeout: 5000 }
+      );
     }
   </script>
 </body>

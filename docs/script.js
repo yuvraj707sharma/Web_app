@@ -12,6 +12,9 @@ let socket;
 // CHATBOT: Global health data for AI context
 let currentData = { heartRate: 0, steps: 0, fall: false };
 
+// CAREGIVER: Emergency contact data
+let caregiverData = JSON.parse(localStorage.getItem('caregiverData')) || null;
+
 // Initialize Socket.IO connection
 function initializeConnection() {
   socket = io();
@@ -34,8 +37,8 @@ function initializeConnection() {
     if (data.fall) {
       // Trigger prominent notification for fall detection
       notifyUser('EMERGENCY: Fall detected!');
-      // Also show an alert for immediate attention
-      alert('⚠️ FALL DETECTED! ⚠️\n\nEmergency assistance may be needed.');
+      // Handle emergency with location sharing
+      handleEmergency();
     }
   });
 }
@@ -50,7 +53,136 @@ connectBtn.addEventListener('click', () => {
 // Auto-connect on page load
 document.addEventListener('DOMContentLoaded', () => {
   initializeConnection();
+  initializeCaregiverSettings();
 });
+
+// CAREGIVER SETTINGS FUNCTIONALITY
+function initializeCaregiverSettings() {
+  const settingsBtn = document.getElementById('settings-btn');
+  const settingsModal = document.getElementById('settings-modal');
+  const settingsClose = document.getElementById('settings-close');
+  const caregiverForm = document.getElementById('caregiver-form');
+  
+  // Load existing caregiver data
+  if (caregiverData) {
+    document.getElementById('caregiver-name').value = caregiverData.name || '';
+    document.getElementById('caregiver-phone').value = caregiverData.phone || '';
+    document.getElementById('caregiver-email').value = caregiverData.email || '';
+  }
+  
+  settingsBtn.addEventListener('click', () => {
+    settingsModal.classList.remove('hidden');
+  });
+  
+  settingsClose.addEventListener('click', () => {
+    settingsModal.classList.add('hidden');
+  });
+  
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+      settingsModal.classList.add('hidden');
+    }
+  });
+  
+  caregiverForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    caregiverData = {
+      name: document.getElementById('caregiver-name').value,
+      phone: document.getElementById('caregiver-phone').value,
+      email: document.getElementById('caregiver-email').value
+    };
+    localStorage.setItem('caregiverData', JSON.stringify(caregiverData));
+    settingsModal.classList.add('hidden');
+    alert('Caregiver information saved!');
+  });
+}
+
+// EMERGENCY HANDLING WITH LOCATION
+async function handleEmergency() {
+  const emergencyModal = document.getElementById('emergency-modal');
+  const emergencyContent = document.getElementById('emergency-content');
+  
+  emergencyModal.classList.remove('hidden');
+  
+  if (!caregiverData) {
+    emergencyContent.innerHTML = `
+      <p>⚠️ No caregiver configured!</p>
+      <button class="emergency-btn" onclick="document.getElementById('settings-modal').classList.remove('hidden'); document.getElementById('emergency-modal').classList.add('hidden');">Setup Caregiver</button>
+    `;
+    return;
+  }
+  
+  try {
+    const position = await getCurrentLocation();
+    const locationText = `Lat: ${position.coords.latitude}, Lng: ${position.coords.longitude}`;
+    const mapsUrl = `https://maps.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
+    
+    emergencyContent.innerHTML = `
+      <p><strong>Caregiver:</strong> ${caregiverData.name}</p>
+      <div class="location-info">
+        <strong>Your Location:</strong><br>
+        ${locationText}<br>
+        <a href="${mapsUrl}" target="_blank">View on Maps</a>
+      </div>
+      <div class="emergency-actions">
+        <button class="emergency-btn" onclick="sendWhatsApp('${caregiverData.phone}', '${locationText}', '${mapsUrl}');">📱 Send via WhatsApp</button>
+        <button class="emergency-btn" onclick="sendEmail('${caregiverData.email}', '${locationText}', '${mapsUrl}');">📧 Send via Email</button>
+        <button class="emergency-btn" onclick="copyLocation('${locationText}', '${mapsUrl}');">📋 Copy Location</button>
+        <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Close</button>
+      </div>
+    `;
+  } catch (error) {
+    emergencyContent.innerHTML = `
+      <p>❌ Could not get location: ${error.message}</p>
+      <div class="emergency-actions">
+        <button class="emergency-btn" onclick="sendWhatsApp('${caregiverData.phone}', 'Location unavailable', '');">📱 Send Alert via WhatsApp</button>
+        <button class="emergency-btn" onclick="sendEmail('${caregiverData.email}', 'Location unavailable', '');">📧 Send Alert via Email</button>
+        <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Close</button>
+      </div>
+    `;
+  }
+}
+
+function getCurrentLocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation not supported'));
+      return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 60000
+    });
+  });
+}
+
+function sendWhatsApp(phone, location, mapsUrl) {
+  const message = `🚨 EMERGENCY ALERT 🚨\n\nFall detected!\n\nLocation: ${location}\n\nMaps: ${mapsUrl}`;
+  const whatsappUrl = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+  window.open(whatsappUrl, '_blank');
+}
+
+function sendEmail(email, location, mapsUrl) {
+  if (!email) {
+    alert('No email configured for caregiver');
+    return;
+  }
+  const subject = '🚨 EMERGENCY: Fall Detected';
+  const body = `EMERGENCY ALERT\n\nFall has been detected!\n\nLocation: ${location}\n\nView on Maps: ${mapsUrl}\n\nPlease check on the person immediately.`;
+  const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(mailtoUrl);
+}
+
+function copyLocation(location, mapsUrl) {
+  const text = `🚨 EMERGENCY: Fall detected!\n\nLocation: ${location}\n\nMaps: ${mapsUrl}`;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Location copied to clipboard! You can now paste it in any messaging app.');
+  }).catch(() => {
+    alert('Could not copy to clipboard. Please manually share the location shown above.');
+  });
+}
 
 function updateDashboard({ steps, heartRate, fall }) {
   document.getElementById('steps').textContent = `Steps: ${steps}`;
