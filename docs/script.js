@@ -10,7 +10,7 @@ let bleDevice = null;
 let bleCharacteristic = null;
 
 // CHATBOT: Global health data for AI context
-let currentData = { heartRate: 0, steps: 0, fall: false };
+let currentData = { heartRate: 0, steps: 0, fall: false, lat: null, lng: null };
 
 // CAREGIVER: Emergency contact data
 let caregiverData = JSON.parse(localStorage.getItem('caregiverData')) || null;
@@ -151,7 +151,7 @@ function initializeCaregiverSettings() {
   }
 }
 
-// EMERGENCY HANDLING WITH LOCATION
+// EMERGENCY HANDLING WITH GPS LOCATION
 async function handleEmergency() {
   const emergencyModal = document.getElementById('emergency-modal');
   const emergencyContent = document.getElementById('emergency-content');
@@ -166,15 +166,15 @@ async function handleEmergency() {
     return;
   }
   
-  try {
-    const position = await getCurrentLocation();
-    const locationText = `Lat: ${position.coords.latitude}, Lng: ${position.coords.longitude}`;
-    const mapsUrl = `https://maps.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
+  // Use GPS data from NEO-6M sensor
+  if (currentData.lat && currentData.lng) {
+    const locationText = `Lat: ${currentData.lat}, Lng: ${currentData.lng}`;
+    const mapsUrl = `https://maps.google.com/maps?q=${currentData.lat},${currentData.lng}`;
     
     emergencyContent.innerHTML = `
       <p><strong>Caregiver:</strong> ${caregiverData.name}</p>
       <div class="location-info">
-        <strong>Your Location:</strong><br>
+        <strong>GPS Location (NEO-6M):</strong><br>
         ${locationText}<br>
         <a href="${mapsUrl}" target="_blank">View on Maps</a>
       </div>
@@ -185,15 +185,37 @@ async function handleEmergency() {
         <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Close</button>
       </div>
     `;
-  } catch (error) {
-    emergencyContent.innerHTML = `
-      <p>❌ Could not get location: ${error.message}</p>
-      <div class="emergency-actions">
-        <button class="emergency-btn" onclick="sendWhatsApp('${caregiverData.phone}', 'Location unavailable', '');">📱 Send Alert via WhatsApp</button>
-        <button class="emergency-btn" onclick="sendEmail('${caregiverData.email}', 'Location unavailable', '');">📧 Send Alert via Email</button>
-        <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Close</button>
-      </div>
-    `;
+  } else {
+    // Fallback to browser geolocation if GPS data not available
+    try {
+      const position = await getCurrentLocation();
+      const locationText = `Lat: ${position.coords.latitude}, Lng: ${position.coords.longitude}`;
+      const mapsUrl = `https://maps.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
+      
+      emergencyContent.innerHTML = `
+        <p><strong>Caregiver:</strong> ${caregiverData.name}</p>
+        <div class="location-info">
+          <strong>Browser Location (Fallback):</strong><br>
+          ${locationText}<br>
+          <a href="${mapsUrl}" target="_blank">View on Maps</a>
+        </div>
+        <div class="emergency-actions">
+          <button class="emergency-btn" onclick="sendWhatsApp('${caregiverData.phone}', '${locationText}', '${mapsUrl}');">📱 Send via WhatsApp</button>
+          <button class="emergency-btn" onclick="sendEmail('${caregiverData.email}', '${locationText}', '${mapsUrl}');">📧 Send via Email</button>
+          <button class="emergency-btn" onclick="copyLocation('${locationText}', '${mapsUrl}');">📋 Copy Location</button>
+          <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Close</button>
+        </div>
+      `;
+    } catch (error) {
+      emergencyContent.innerHTML = `
+        <p>❌ No GPS data available</p>
+        <div class="emergency-actions">
+          <button class="emergency-btn" onclick="sendWhatsApp('${caregiverData.phone}', 'Location unavailable', '');">📱 Send Alert via WhatsApp</button>
+          <button class="emergency-btn" onclick="sendEmail('${caregiverData.email}', 'Location unavailable', '');">📧 Send Alert via Email</button>
+          <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Close</button>
+        </div>
+      `;
+    }
   }
 }
 
@@ -238,7 +260,7 @@ function copyLocation(location, mapsUrl) {
   });
 }
 
-function updateDashboard({ steps, heartRate, fall }) {
+function updateDashboard({ steps, heartRate, fall, lat, lng }) {
   const stepsEl = document.getElementById('steps');
   const heartRateEl = document.getElementById('heart-rate');
   const fallAlertEl = document.getElementById('fall-alert');
@@ -248,7 +270,13 @@ function updateDashboard({ steps, heartRate, fall }) {
   if (fallAlertEl) fallAlertEl.textContent = fall ? 'Fall detected!' : 'All good';
   
   // CHATBOT: Update global data for AI context
-  currentData = { heartRate: heartRate || 0, steps: steps || 0, fall: fall || false };
+  currentData = { 
+    heartRate: heartRate || 0, 
+    steps: steps || 0, 
+    fall: fall || false,
+    lat: lat || null,
+    lng: lng || null
+  };
 }
 
 // Enhanced notification function with permission handling and debugging
