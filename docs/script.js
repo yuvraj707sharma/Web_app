@@ -1,8 +1,7 @@
 /* File: script.js */
-// CONFIG: Hugging Face API configuration
+// CONFIG: AI chatbot in demo mode (no API key required)
 const AI_CONFIG = {
-  apiKey: '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',
-  endpoint: 'https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1'
+  demoMode: true
 };
 
 // WEBSOCKET VARIABLES
@@ -282,38 +281,8 @@ document.addEventListener('DOMContentLoaded', () => {
       question: question
     };
     
-    try {
-    
-    // Call Hugging Face Mixtral API with optimized prompt
-    const prompt = `<s>[INST] You are a health assistant. Current data: Heart rate ${context.heartRate} BPM, Steps taken: ${context.steps}. User question: "${context.question}". Provide a brief, helpful response about their health metrics. [/INST]`;
-    
-    const response = await fetch(AI_CONFIG.endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: { 
-          max_new_tokens: 150, 
-          temperature: 0.3,
-          return_full_text: false
-        }
-      })
-    });
-    
-    if (!response.ok) {
-      console.error('API Error:', response.status, response.statusText);
-      throw new Error('API request failed');
-    }
-    
-    const data = await response.json();
-    return data[0]?.generated_text?.trim() || 'I need more information to help you.';
-    } catch (error) {
-      console.warn('Using demo mode due to API error:', error);
-      return getDemoResponse(context);
-    }
+    // Always use demo mode (no API key required)
+    return getDemoResponse(context);
   }
   
   function getDemoResponse({ heartRate, steps, question }) {
