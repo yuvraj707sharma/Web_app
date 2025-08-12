@@ -151,7 +151,7 @@ function initializeCaregiverSettings() {
   }
 }
 
-// AUTOMATIC EMERGENCY HANDLING
+// STREAMLINED EMERGENCY HANDLING
 async function handleEmergency() {
   const emergencyModal = document.getElementById('emergency-modal');
   const emergencyContent = document.getElementById('emergency-content');
@@ -165,8 +165,6 @@ async function handleEmergency() {
     `;
     return;
   }
-  
-  emergencyContent.innerHTML = '<p>🚨 Sending emergency alert...</p>';
   
   // Get location data
   let locationText, mapsUrl;
@@ -184,67 +182,67 @@ async function handleEmergency() {
     }
   }
   
-  // AUTOMATIC SENDING - Try all methods
-  const results = await sendEmergencyAlerts(locationText, mapsUrl);
+  // Store for sequential sending
+  window.emergencyData = { locationText, mapsUrl };
   
-  // Show results
+  // Show streamlined interface
   emergencyContent.innerHTML = `
-    <p><strong>Emergency alerts sent to:</strong> ${caregiverData.name}</p>
+    <p><strong>🚨 FALL DETECTED!</strong></p>
+    <p>Caregiver: ${caregiverData.name}</p>
     <div class="location-info">
       <strong>Location:</strong> ${locationText}<br>
       ${mapsUrl ? `<a href="${mapsUrl}" target="_blank">View on Maps</a>` : ''}
     </div>
-    <div class="emergency-results">
-      ${results.map(r => `<p>${r}</p>`).join('')}
-    </div>
     <div class="emergency-actions">
-      <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Close</button>
+      <button class="emergency-btn priority" onclick="sendSequentialAlerts();">📱 SEND EMERGENCY ALERT</button>
+      <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Cancel</button>
     </div>
+    <p class="emergency-note">Click once to send SMS → WhatsApp → Email sequentially</p>
   `;
 }
 
-// SEND ALL EMERGENCY ALERTS AUTOMATICALLY
-async function sendEmergencyAlerts(locationText, mapsUrl) {
-  const results = [];
+// SEQUENTIAL ALERT SENDING (ONE CLICK)
+function sendSequentialAlerts() {
+  const { locationText, mapsUrl } = window.emergencyData;
+  const emergencyContent = document.getElementById('emergency-content');
   
-  // 1. Try SMS (works offline)
-  try {
-    sendSMS(caregiverData.phone, locationText, mapsUrl);
-    results.push('✓ SMS alert sent');
-  } catch (error) {
-    results.push('❌ SMS failed');
-  }
+  emergencyContent.innerHTML = `
+    <p><strong>Sending alerts to ${caregiverData.name}...</strong></p>
+    <div class="emergency-progress">
+      <p id="step1">📱 Opening SMS...</p>
+      <p id="step2" style="opacity:0.5">💬 Opening WhatsApp...</p>
+      <p id="step3" style="opacity:0.5">📧 Opening Email...</p>
+    </div>
+    <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Close</button>
+  `;
   
-  // 2. Try WhatsApp (needs internet)
-  if (navigator.onLine) {
-    try {
+  // Step 1: SMS (immediate)
+  sendSMS(caregiverData.phone, locationText, mapsUrl);
+  
+  // Step 2: WhatsApp (after 3 seconds)
+  setTimeout(() => {
+    document.getElementById('step1').style.opacity = '0.5';
+    document.getElementById('step2').style.opacity = '1';
+    if (navigator.onLine) {
       sendWhatsApp(caregiverData.phone, locationText, mapsUrl);
-      results.push('✓ WhatsApp alert sent');
-    } catch (error) {
-      results.push('❌ WhatsApp failed');
     }
-  } else {
-    results.push('⚠️ WhatsApp skipped (offline)');
-  }
+  }, 3000);
   
-  // 3. Try Email (needs internet)
-  if (navigator.onLine && caregiverData.email) {
-    try {
+  // Step 3: Email (after 6 seconds)
+  setTimeout(() => {
+    document.getElementById('step2').style.opacity = '0.5';
+    document.getElementById('step3').style.opacity = '1';
+    if (navigator.onLine && caregiverData.email) {
       sendEmail(caregiverData.email, locationText, mapsUrl);
-      results.push('✓ Email alert sent');
-    } catch (error) {
-      results.push('❌ Email failed');
     }
-  }
-  
-  return results;
+  }, 6000);
 }
 
-// SMS FUNCTION (WORKS OFFLINE)
+// SMS FUNCTION (WORKS OFFLINE) - PRIORITY METHOD
 function sendSMS(phone, location, mapsUrl) {
-  const message = `EMERGENCY: Fall detected! Location: ${location} ${mapsUrl}`;
+  const message = `🚨 EMERGENCY: Fall detected! Location: ${location} ${mapsUrl ? mapsUrl : 'Maps unavailable'}`;
   const smsUrl = `sms:${phone}?body=${encodeURIComponent(message)}`;
-  window.open(smsUrl);
+  window.location.href = smsUrl; // Use location.href instead of window.open for better mobile support
 }
 
 function getCurrentLocation() {
