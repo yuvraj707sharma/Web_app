@@ -151,7 +151,7 @@ function initializeCaregiverSettings() {
   }
 }
 
-// EMERGENCY HANDLING WITH GPS LOCATION
+// AUTOMATIC EMERGENCY HANDLING
 async function handleEmergency() {
   const emergencyModal = document.getElementById('emergency-modal');
   const emergencyContent = document.getElementById('emergency-content');
@@ -166,57 +166,85 @@ async function handleEmergency() {
     return;
   }
   
-  // Use GPS data from NEO-6M sensor
+  emergencyContent.innerHTML = '<p>🚨 Sending emergency alert...</p>';
+  
+  // Get location data
+  let locationText, mapsUrl;
   if (currentData.lat && currentData.lng) {
-    const locationText = `Lat: ${currentData.lat}, Lng: ${currentData.lng}`;
-    const mapsUrl = `https://maps.google.com/maps?q=${currentData.lat},${currentData.lng}`;
-    
-    emergencyContent.innerHTML = `
-      <p><strong>Caregiver:</strong> ${caregiverData.name}</p>
-      <div class="location-info">
-        <strong>GPS Location (NEO-6M):</strong><br>
-        ${locationText}<br>
-        <a href="${mapsUrl}" target="_blank">View on Maps</a>
-      </div>
-      <div class="emergency-actions">
-        <button class="emergency-btn" onclick="sendWhatsApp('${caregiverData.phone}', '${locationText}', '${mapsUrl}');">📱 Send via WhatsApp</button>
-        <button class="emergency-btn" onclick="sendEmail('${caregiverData.email}', '${locationText}', '${mapsUrl}');">📧 Send via Email</button>
-        <button class="emergency-btn" onclick="copyLocation('${locationText}', '${mapsUrl}');">📋 Copy Location</button>
-        <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Close</button>
-      </div>
-    `;
+    locationText = `Lat: ${currentData.lat}, Lng: ${currentData.lng}`;
+    mapsUrl = `https://maps.google.com/maps?q=${currentData.lat},${currentData.lng}`;
   } else {
-    // Fallback to browser geolocation if GPS data not available
     try {
       const position = await getCurrentLocation();
-      const locationText = `Lat: ${position.coords.latitude}, Lng: ${position.coords.longitude}`;
-      const mapsUrl = `https://maps.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
-      
-      emergencyContent.innerHTML = `
-        <p><strong>Caregiver:</strong> ${caregiverData.name}</p>
-        <div class="location-info">
-          <strong>Browser Location (Fallback):</strong><br>
-          ${locationText}<br>
-          <a href="${mapsUrl}" target="_blank">View on Maps</a>
-        </div>
-        <div class="emergency-actions">
-          <button class="emergency-btn" onclick="sendWhatsApp('${caregiverData.phone}', '${locationText}', '${mapsUrl}');">📱 Send via WhatsApp</button>
-          <button class="emergency-btn" onclick="sendEmail('${caregiverData.email}', '${locationText}', '${mapsUrl}');">📧 Send via Email</button>
-          <button class="emergency-btn" onclick="copyLocation('${locationText}', '${mapsUrl}');">📋 Copy Location</button>
-          <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Close</button>
-        </div>
-      `;
+      locationText = `Lat: ${position.coords.latitude}, Lng: ${position.coords.longitude}`;
+      mapsUrl = `https://maps.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
     } catch (error) {
-      emergencyContent.innerHTML = `
-        <p>❌ No GPS data available</p>
-        <div class="emergency-actions">
-          <button class="emergency-btn" onclick="sendWhatsApp('${caregiverData.phone}', 'Location unavailable', '');">📱 Send Alert via WhatsApp</button>
-          <button class="emergency-btn" onclick="sendEmail('${caregiverData.email}', 'Location unavailable', '');">📧 Send Alert via Email</button>
-          <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Close</button>
-        </div>
-      `;
+      locationText = 'Location unavailable';
+      mapsUrl = '';
     }
   }
+  
+  // AUTOMATIC SENDING - Try all methods
+  const results = await sendEmergencyAlerts(locationText, mapsUrl);
+  
+  // Show results
+  emergencyContent.innerHTML = `
+    <p><strong>Emergency alerts sent to:</strong> ${caregiverData.name}</p>
+    <div class="location-info">
+      <strong>Location:</strong> ${locationText}<br>
+      ${mapsUrl ? `<a href="${mapsUrl}" target="_blank">View on Maps</a>` : ''}
+    </div>
+    <div class="emergency-results">
+      ${results.map(r => `<p>${r}</p>`).join('')}
+    </div>
+    <div class="emergency-actions">
+      <button class="emergency-btn" onclick="document.getElementById('emergency-modal').classList.add('hidden');">Close</button>
+    </div>
+  `;
+}
+
+// SEND ALL EMERGENCY ALERTS AUTOMATICALLY
+async function sendEmergencyAlerts(locationText, mapsUrl) {
+  const results = [];
+  
+  // 1. Try SMS (works offline)
+  try {
+    sendSMS(caregiverData.phone, locationText, mapsUrl);
+    results.push('✓ SMS alert sent');
+  } catch (error) {
+    results.push('❌ SMS failed');
+  }
+  
+  // 2. Try WhatsApp (needs internet)
+  if (navigator.onLine) {
+    try {
+      sendWhatsApp(caregiverData.phone, locationText, mapsUrl);
+      results.push('✓ WhatsApp alert sent');
+    } catch (error) {
+      results.push('❌ WhatsApp failed');
+    }
+  } else {
+    results.push('⚠️ WhatsApp skipped (offline)');
+  }
+  
+  // 3. Try Email (needs internet)
+  if (navigator.onLine && caregiverData.email) {
+    try {
+      sendEmail(caregiverData.email, locationText, mapsUrl);
+      results.push('✓ Email alert sent');
+    } catch (error) {
+      results.push('❌ Email failed');
+    }
+  }
+  
+  return results;
+}
+
+// SMS FUNCTION (WORKS OFFLINE)
+function sendSMS(phone, location, mapsUrl) {
+  const message = `EMERGENCY: Fall detected! Location: ${location} ${mapsUrl}`;
+  const smsUrl = `sms:${phone}?body=${encodeURIComponent(message)}`;
+  window.open(smsUrl);
 }
 
 function getCurrentLocation() {
